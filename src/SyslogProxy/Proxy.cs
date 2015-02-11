@@ -5,6 +5,7 @@
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using SyslogProxy.Messages;
@@ -13,11 +14,14 @@
     {
         private readonly Action<string> messageHandler;
 
+        private readonly CancellationToken cancellationToken;
+
         private const int BufferSize = 2048;
 
-        public Proxy(Action<string> messageHandler)
+        public Proxy(Action<string> messageHandler, CancellationToken cancellationToken)
         {
             this.messageHandler = messageHandler;
+            this.cancellationToken = cancellationToken;
             var tcp = new TcpListener(IPAddress.Any, Configuration.ProxyPort);
 
             tcp.Start();
@@ -26,7 +30,7 @@
 
         private async Task AcceptConnection(TcpListener listener)
         {
-            while (true)
+            while (!this.cancellationToken.IsCancellationRequested)
             {
                 var client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
                 this.EchoAsync(client).ConfigureAwait(false);
@@ -35,7 +39,8 @@
 
         private async Task EchoAsync(TcpClient client)
         {
-            Console.WriteLine("New client connected.");
+            var ipAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+            Logger.Information("New client connected from IP: [{0}].", ipAddress);
             using (client)
             {
                 var stream = client.GetStream();
@@ -45,17 +50,16 @@
                 {
                     var timeoutTask = Task.Delay(TimeSpan.FromSeconds(Configuration.TcpConnectionTimeout));
                     Array.Clear(buf, 0, BufferSize);
-                    var amountReadTask = stream.ReadAsync(buf, 0, buf.Length);
+                    var amountReadTask = stream.ReadAsync(buf, 0, buf.Length, this.cancellationToken);
                     var completedTask = await Task.WhenAny(timeoutTask, amountReadTask)
                                                   .ConfigureAwait(false);
                     if (completedTask == timeoutTask)
                     {
-                        Console.WriteLine("Client timed out");
+                        Logger.Information("Client with IP [{0}] timed out.", ipAddress);
                         break;
                     }
 
-                    var amountRead = amountReadTask.Result;
-                    if (amountRead == 0)
+                    if (amountReadTask.Result == 0)
                     {
                         break;
                     }
@@ -69,7 +73,7 @@
                     }
                 }
             }
-            Console.WriteLine("Client disconnected");
+            Logger.Information("Client with IP [{0}] disconnected.", ipAddress);
         }
     }
 }

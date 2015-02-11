@@ -1,22 +1,28 @@
 ﻿namespace SyslogProxy
 {
-    using System.Threading;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.ServiceProcess;
 
-    using SyslogProxy.Messages;
+    using SimpleServices;
 
-    public class Program
+    [RunInstaller(true)]
+    public class Program : SimpleServiceApplication
     {
         static void Main(string[] args)
         {
-            var writer = new SeqWriter();
-            
-            new Proxy(async message => await writer.WriteToSeq(new JsonSyslogMessage(message)).ConfigureAwait(false));
-
-            // TODO: do something better than loop endlessly
-            while (true)
-            {
-                Thread.Sleep(100000);
-            }
+            new Service(args,
+                   new List<IWindowsService> { new ProxyService() }.ToArray,
+                   installationSettings: (serviceInstaller, serviceProcessInstaller) =>
+                   {
+                       serviceInstaller.ServiceName = "SyslogProxy";
+                       serviceInstaller.Description = "A simple Syslog proxy for Seq.";
+                       serviceInstaller.StartType = ServiceStartMode.Automatic;
+                       serviceProcessInstaller.Account = ServiceAccount.LocalService;
+                       serviceProcessInstaller.Installers.Add(new EventSourceInstaller());
+                   },
+                   configureContext: x => { x.Log = Logger.Information; })
+           .Host();
         }
     }
 }

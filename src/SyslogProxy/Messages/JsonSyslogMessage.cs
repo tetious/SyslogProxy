@@ -32,7 +32,7 @@
             }
             catch (Exception)
             {
-                Console.WriteLine("Could not parse priority. [{0}]", rawMessage);
+                Logger.Warning("Could not parse priority. [{0}]", rawMessage);
                 this.Invalid = true;
                 return;
             }

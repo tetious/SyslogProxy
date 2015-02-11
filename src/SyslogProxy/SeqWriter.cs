@@ -16,7 +16,7 @@
         {
             if (message.Invalid)
             {
-                Console.WriteLine("Skipping incomplete/invalid message. [{0}]", message.RawMessage);
+                Logger.Warning("Skipping incomplete/invalid message. [{0}]", message.RawMessage);
                 return;
             }
 
@@ -34,8 +34,8 @@
 
             if (capturedException != null)
             {
-                Console.Write("Couldn't write to SEQ. Exception: [{0}]", capturedException.SourceException.Message);
                 this.retryCount++;
+                Logger.Warning("Couldn't write to SEQ. Retry Count:[{0}] Exception: [{1}]", this.retryCount, capturedException.SourceException.Message);
                 await this.WriteToSeq(message, (int)Math.Pow(100, this.retryCount));
             }
         }
