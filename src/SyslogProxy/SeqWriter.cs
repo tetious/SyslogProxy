@@ -14,6 +14,12 @@
 
         public async Task WriteToSeq(JsonSyslogMessage message, int delay = 0)
         {
+            if (message.Invalid)
+            {
+                Console.WriteLine("Skipping incomplete/invalid message. [{0}]", message.RawMessage);
+                return;
+            }
+
             await Task.Delay(Math.Min(delay, 60000));
 
             ExceptionDispatchInfo capturedException = null;
@@ -30,7 +36,7 @@
             {
                 Console.Write("Couldn't write to SEQ. Exception: [{0}]", capturedException.SourceException.Message);
                 this.retryCount++;
-                await this.WriteToSeq(message, 100 ^ this.retryCount);
+                await this.WriteToSeq(message, (int)Math.Pow(100, this.retryCount));
             }
         }
 

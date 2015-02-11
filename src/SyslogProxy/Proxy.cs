@@ -1,6 +1,7 @@
 ﻿namespace SyslogProxy
 {
     using System;
+    using System.Linq;
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
@@ -11,6 +12,8 @@
     public class Proxy
     {
         private readonly Action<string> messageHandler;
+
+        private const int BufferSize = 2048;
 
         public Proxy(Action<string> messageHandler)
         {
@@ -35,11 +38,13 @@
             Console.WriteLine("New client connected.");
             using (client)
             {
-                var buf = new byte[4096];
                 var stream = client.GetStream();
+                var buf = new byte[BufferSize];
+                var accumulator = new StringBuilder();
                 while (true)
                 {
                     var timeoutTask = Task.Delay(TimeSpan.FromSeconds(Configuration.TcpConnectionTimeout));
+                    Array.Clear(buf, 0, BufferSize);
                     var amountReadTask = stream.ReadAsync(buf, 0, buf.Length);
                     var completedTask = await Task.WhenAny(timeoutTask, amountReadTask)
                                                   .ConfigureAwait(false);
@@ -54,8 +59,14 @@
                     {
                         break;
                     }
-
-                    this.messageHandler(Encoding.UTF8.GetString(buf).TrimEnd('\0'));
+                    accumulator.Append(Encoding.UTF8.GetString(buf).TrimEnd('\0'));
+                    if (accumulator.ToString().Contains("\n"))
+                    {
+                        var splitMessage = accumulator.ToString().Split('\n').ToList();
+                        accumulator = new StringBuilder(splitMessage.Last());
+                        splitMessage.RemoveAt(splitMessage.Count - 1);
+                        splitMessage.ForEach(this.messageHandler);
+                    }
                 }
             }
             Console.WriteLine("Client disconnected");
