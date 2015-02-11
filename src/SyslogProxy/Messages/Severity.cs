@@ -1,4 +1,4 @@
-﻿namespace SyslogProxy
+﻿namespace SyslogProxy.Messages
 {
     public enum Severity
     {
