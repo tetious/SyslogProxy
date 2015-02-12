@@ -1,6 +1,6 @@
-namespace SyslogProxy
+namespace SyslogProxy.Messages
 {
-    public class SeqEvent
+    public class SeqEventMessage
     {
         public string Timestamp { get; set; }
 
