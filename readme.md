@@ -43,6 +43,11 @@ To uninstall the service:
 
     syslogproxy.exe /u
 
+Acknowledgements
+===
+* json.net (http://www.newtonsoft.com/json)
+* SimpleServices (https://github.com/davidwhitney/SimpleServices)
+
 License
 ===
 Copyright (c) 2015, Assurance Systems, Inc.
