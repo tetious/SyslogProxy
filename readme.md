@@ -31,7 +31,7 @@ Key | Description | Default | Example
 
 Installation
 ===
-Build or grab a release zip. Configure as above. As an admin, run:
+Build or grab a release zip. Configure as above. 
 
 SyslogProxy will run standalone or as a windows service. To run standalone, simply run the exe.
 
