@@ -43,6 +43,8 @@
             Logger.Information("New client connected from IP: [{0}].", ipAddress);
             using (client)
             {
+                var decoder = Encoding.UTF8.GetDecoder();
+                char[] decoded = new char[BufferSize];
                 var stream = client.GetStream();
                 var buf = new byte[BufferSize];
                 var accumulator = new StringBuilder();
@@ -63,7 +65,10 @@
                     {
                         break;
                     }
-                    accumulator.Append(Encoding.UTF8.GetString(buf).TrimEnd('\0'));
+
+                    var countDecoded = decoder.GetChars(buf, 0, amountReadTask.Result, decoded, 0);
+                    accumulator.Append(decoded, 0, countDecoded);
+
                     if (accumulator.ToString().Contains("\n"))
                     {
                         var splitMessage = accumulator.ToString().Split('\n').ToList();
